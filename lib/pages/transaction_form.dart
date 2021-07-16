@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_persistence_alura/models/contact.dart';
 import 'package:flutter_persistence_alura/models/transaction.dart';
 import 'package:flutter_persistence_alura/services/webclients/transactions_webclient.dart';
+import 'package:flutter_persistence_alura/widgets/progress.dart';
 import 'package:flutter_persistence_alura/widgets/response_dialog.dart';
 import 'package:flutter_persistence_alura/widgets/transaction_auth_dialog.dart';
+import 'package:uuid/uuid.dart';
 
 class TransactionForm extends StatefulWidget {
   final Contact contact;
@@ -19,6 +21,9 @@ class TransactionForm extends StatefulWidget {
 class _TransactionFormState extends State<TransactionForm> {
   final TextEditingController _valueController = TextEditingController();
   final TransactionWebClient _webClient = TransactionWebClient();
+  final String transactionId = Uuid().v4();
+
+  bool _sending = false;
 
   @override
   Widget build(BuildContext context) {
@@ -32,6 +37,12 @@ class _TransactionFormState extends State<TransactionForm> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
+              Visibility(
+                child: Progress(
+                  message: "Sending",
+                ),
+                visible: _sending,
+              ),
               Text(
                 widget.contact.name,
                 style: TextStyle(
@@ -67,7 +78,7 @@ class _TransactionFormState extends State<TransactionForm> {
                       final double? value =
                           double.tryParse(_valueController.text);
                       final transactionCreated =
-                          Transaction(value!, widget.contact);
+                          Transaction(transactionId, value!, widget.contact);
 
                       showDialog(
                           context: context,
@@ -101,6 +112,9 @@ class _TransactionFormState extends State<TransactionForm> {
 
   Future<Transaction?> _send(Transaction transactionCreated, String password,
       BuildContext context) async {
+    setState(() {
+      _sending = true;
+    });
     Transaction? transaction =
         await _webClient.save(transactionCreated, password).catchError(
       (e) {
@@ -117,7 +131,11 @@ class _TransactionFormState extends State<TransactionForm> {
         _showFailureMessage(context);
       },
       test: (e) => e is Exception,
-    );
+    ).whenComplete(() {
+      setState(() {
+        _sending = false;
+      });
+    });
     return transaction;
   }
 
