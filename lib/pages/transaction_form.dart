@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_persistence_alura/models/contact.dart';
 import 'package:flutter_persistence_alura/models/transaction.dart';
@@ -72,9 +74,18 @@ class _TransactionFormState extends State<TransactionForm> {
                           builder: (contextDialog) {
                             return TransactionAuthDialog(
                               onConfirm: (String password) async {
-                                Transaction transaction = await _webClient
+                                Transaction? transaction = await _webClient
                                     .save(transactionCreated, password)
                                     .catchError(
+                                  (e) {
+                                    showDialog(
+                                        context: context,
+                                        builder: (contextDialog) {
+                                          return FailureDialog("Timeout Error");
+                                        });
+                                  },
+                                  test: (e) => e is TimeoutException,
+                                ).catchError(
                                   (e) {
                                     showDialog(
                                         context: context,
@@ -82,15 +93,17 @@ class _TransactionFormState extends State<TransactionForm> {
                                           return FailureDialog(e.message);
                                         });
                                   },
-                                  test: (e) => e is Exception,
+                                  test: (e) => e is HttpException,
                                 );
-                                await showDialog(
-                                    context: context,
-                                    builder: (contextDialog) {
-                                      return SuccessDialog(
-                                          "Successful Transaction");
-                                    });
-                                Navigator.pop(context);
+                                if (transaction != null) {
+                                  await showDialog(
+                                      context: context,
+                                      builder: (contextDialog) {
+                                        return SuccessDialog(
+                                            "Successful Transaction");
+                                      });
+                                  Navigator.pop(context);
+                                }
                               },
                             );
                           });
