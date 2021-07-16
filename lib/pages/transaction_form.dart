@@ -74,27 +74,8 @@ class _TransactionFormState extends State<TransactionForm> {
                           builder: (contextDialog) {
                             return TransactionAuthDialog(
                               onConfirm: (String password) async {
-                                Transaction? transaction = await _webClient
-                                    .save(transactionCreated, password)
-                                    .catchError(
-                                  (e) {
-                                    showDialog(
-                                        context: context,
-                                        builder: (contextDialog) {
-                                          return FailureDialog("Timeout Error");
-                                        });
-                                  },
-                                  test: (e) => e is TimeoutException,
-                                ).catchError(
-                                  (e) {
-                                    showDialog(
-                                        context: context,
-                                        builder: (contextDialog) {
-                                          return FailureDialog(e.message);
-                                        });
-                                  },
-                                  test: (e) => e is HttpException,
-                                );
+                                Transaction? transaction = await _send(
+                                    transactionCreated, password, context);
                                 if (transaction != null) {
                                   await showDialog(
                                       context: context,
@@ -116,5 +97,36 @@ class _TransactionFormState extends State<TransactionForm> {
         ),
       ),
     );
+  }
+
+  Future<Transaction?> _send(Transaction transactionCreated, String password,
+      BuildContext context) async {
+    Transaction? transaction =
+        await _webClient.save(transactionCreated, password).catchError(
+      (e) {
+        _showFailureMessage(context, message: "Timeout Error");
+      },
+      test: (e) => e is TimeoutException,
+    ).catchError(
+      (e) {
+        _showFailureMessage(context, message: e.message);
+      },
+      test: (e) => e is HttpException,
+    ).catchError(
+      (e) {
+        _showFailureMessage(context);
+      },
+      test: (e) => e is Exception,
+    );
+    return transaction;
+  }
+
+  void _showFailureMessage(BuildContext context,
+      {String message = "Unknow error"}) {
+    showDialog(
+        context: context,
+        builder: (contextDialog) {
+          return FailureDialog(message);
+        });
   }
 }
