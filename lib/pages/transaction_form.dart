@@ -123,6 +123,8 @@ class _TransactionFormState extends State<TransactionForm> {
       test: (e) => e is TimeoutException,
     ).catchError(
       (e) {
+        print("CHEGOU AQUI");
+        print(e.statusCode);
         _showFailureMessage(context, message: e.message);
       },
       test: (e) => e is HttpException,
